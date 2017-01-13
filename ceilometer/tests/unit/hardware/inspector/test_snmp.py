@@ -78,6 +78,15 @@ class TestSNMPInspector(test_base.BaseTestCase):
             'metadata': {},
             'post_op': None,
         },
+        'test_filter': {
+            'matching_type': snmp.PREFIX,
+            'metric_oid': ('1.3.6.1.4.1.2021.13.15.1.1.9', int),
+            'filter': ('1.3.6.1.4.1.2021.13.15.1.1.2', lambda x: re.match('^sd[a-z]+$', str(x))),
+            'metadata': {
+                'meta': ('1.3.6.1.4.1.2021.9.1.3', int)
+            },
+            'post_op': None,
+        },
     }
 
     def setUp(self):

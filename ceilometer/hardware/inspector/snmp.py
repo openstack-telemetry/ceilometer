@@ -16,6 +16,7 @@
 """Inspector for collecting data over SNMP"""
 
 import copy
+import re
 
 from oslo_log import log
 from pysnmp.entity.rfc3413.oneliner import cmdgen
@@ -222,6 +223,11 @@ class SNMPInspector(base.Inspector):
                                       meter_def['metric_oid'][0],
                                       meter_def['matching_type']):
             new_oids.append(meter_def['metric_oid'][0])
+        if meter_def['filter']:
+            if not cls.find_matching_oids(oid_cache,
+                                          meter_def['filter'][0],
+                                          meter_def['matching_type']):
+                new_oids.append(meter_def['filter'][0])
         for metadata in meter_def['metadata'].values():
             if not cls.find_matching_oids(oid_cache,
                                           metadata[0],
@@ -252,6 +258,13 @@ class SNMPInspector(base.Inspector):
 
         for oid in oids_for_sample_values:
             suffix = oid[len(meter_def['metric_oid'][0]):]
+            # check if sample value needs to be filtered
+            if meter_def['filter'] and \
+               self.get_oid_value(oid_cache,
+                                  meter_def['filter'],
+                                  suffix, host):
+                continue
+            # get metric value
             value = self.get_oid_value(oid_cache,
                                        meter_def['metric_oid'],
                                        suffix, host)
@@ -338,6 +351,10 @@ class SNMPInspector(base.Inspector):
         processed['matching_type'] = param['matching_type']
         processed['metric_oid'] = (param['oid'], eval(param['type']))
         processed['post_op'] = param.get('post_op', None)
+        processed['filter'] = None
+        if 'filter' in param:
+            v = param['filter']
+            processed['filter'] = (v['oid'], eval(v['type']))
         processed['metadata'] = {}
         for k, v in six.iteritems(param.get('metadata', {})):
             processed['metadata'][k] = (v['oid'], eval(v['type']))
